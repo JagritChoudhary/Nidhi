@@ -7,6 +7,8 @@ import { useState } from "react";
 import bs58 from "bs58"
 import {ethers} from "ethers"
 import {toast} from "sonner"
+import { Eye, EyeOff } from "lucide-react";
+import { Button } from "./ui/button";
 
 
 
@@ -153,5 +155,36 @@ const CopytoClipboard=(content:string)=>{
     navigator.clipboard.writeText(content)
     toast.success("message copied successfully")
 }
+return(
+<div className="flex flex-col gap-4">
+{wallets.length===0 &&(
+    <div className="flex flex-col gap-4">
+        <h1 className="tracking-tighter text-4xl font-black md:5xl">Welcome to nidhi</h1>
+            <p className="text-2xl font-light">A web wallet that support Sol & Eth</p>
+            <p className ="text-xl">pick one  </p>
+    </div>
 
-}
+    
+)}
+<div className="flex gap-2">
+        <Button size={"lg"}
+        onClick={()=>{setPathType("501"); toast.success("wallet selected successfully")}
+        } >Solana</Button>
+
+          <Button size={"lg"}
+        onClick={()=>{setPathType("60"); toast.success("wallet selected successfully")}
+        } >Eth</Button>
+        </div>
+
+
+
+
+
+</div>
+
+
+
+
+
+
+)}
