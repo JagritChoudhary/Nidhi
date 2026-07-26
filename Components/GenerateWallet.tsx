@@ -9,6 +9,7 @@ import {ethers} from "ethers"
 import {toast} from "sonner"
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 
 
 
@@ -20,7 +21,7 @@ type Wallet = {
 
 }
 export default function GenerateWallet(){
-const [pathType , setPathType] = useState<"60"|"501">("501")
+const [pathType , setPathType] = useState<"60"|"501"|"0">("0")
 const [mnemonicWords,setMnemonicWords] = useState<string[]>(Array(12).fill(""))
 const[InputMnemonic,setInputMnemonic]= useState<string>("")
 const[VisiblePrivateKey,setVisiblePrivateKey] = useState<boolean[]>([false]) 
@@ -157,15 +158,17 @@ const CopytoClipboard=(content:string)=>{
 }
 return(
 <div className="flex flex-col gap-4">
-{wallets.length===0 &&(
+{wallets.length===0 && pathType === "0" &&(
+    
+       <div>
     <div className="flex flex-col gap-4">
-        <h1 className="tracking-tighter text-4xl font-black md:5xl">Welcome to nidhi</h1>
+        <h1 className="tracking-tighter text-4xl font-black md:5-xl">Welcome to nidhi</h1>
             <p className="text-2xl font-light">A web wallet that support Sol & Eth</p>
             <p className ="text-xl">pick one  </p>
     </div>
 
-    
-)}
+      
+
 <div className="flex gap-2">
         <Button size={"lg"}
         onClick={()=>{setPathType("501"); toast.success("wallet selected successfully")}
@@ -173,10 +176,22 @@ return(
 
           <Button size={"lg"}
         onClick={()=>{setPathType("60"); toast.success("wallet selected successfully")}
-        } >Eth</Button>
-        </div>
+        } >Eth</Button></div> 
 
+       
+        </div>)}
 
+{pathType!=="0" &&(
+    <div className="flex  gap-2">
+        <Input placeholder="Enter recovery phrase or click on generate wallet"
+        value={InputMnemonic}
+        onChange={(e)=>setInputMnemonic(e.target.value)}
+        type="password"
+       >
+        </Input>
+        <Button>{InputMnemonic ==="" ?"generate wallet" :"add wallet"}</Button>
+    </div>
+)}
 
 
 
