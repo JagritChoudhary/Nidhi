@@ -42,12 +42,12 @@ const generatewalletfromMnemonic = (
     try {
         const seed = mnemonicToSeedSync(mnemonic);
         const path= `m/44'/${pathType}'/${accountIndex}'`;
-        const derivedSeed = derivePath(pathType,seed.toString("hex")).key //gives buffer
+        const derivedSeed = derivePath(path,seed.toString("hex")).key //gives buffer
 
         let publicKeyEnc:string
         let privateKeyEnc:string
     
-        if(pathType==="501'"){
+        if(pathType==="501"){
             //solana
            const {secretKey} = nacl.sign.keyPair.fromSeed(derivedSeed)// arrays of 32 and 64 bits for keys
     
@@ -56,7 +56,7 @@ const generatewalletfromMnemonic = (
     
     
         }
-        else if(pathType==="60'"){
+        else if(pathType==="60"){
             //eth
             const privateKey = Buffer.from(derivedSeed).toString("hex")
              privateKeyEnc = privateKey
@@ -76,6 +76,8 @@ const generatewalletfromMnemonic = (
             path
         }
     } catch (error) {
+      console.log(error);
+      
         toast.error("Failed to generate wallet")
         return null
     }
@@ -189,7 +191,7 @@ return(
         type="password"
        >
         </Input>
-        <Button>{InputMnemonic ==="" ?"generate wallet" :"add wallet"}</Button>
+        <Button onClick={()=>{handleGenerateWallet()}}>{InputMnemonic ==="" ?"generate wallet" :"add wallet"}</Button>
     </div>
 )}
 
