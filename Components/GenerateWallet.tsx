@@ -10,7 +10,7 @@ import {toast} from "sonner"
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-
+import { HDKey } from '@scure/bip32';
 
 
 type Wallet = {
@@ -41,14 +41,16 @@ const generatewalletfromMnemonic = (
 ):Wallet | null =>{
     try {
         const seed = mnemonicToSeedSync(mnemonic);
-        const path= `m/44'/${pathType}'/${accountIndex}'`;
-        const derivedSeed = derivePath(path,seed.toString("hex")).key //gives buffer
+        let path :string ;
+        let derivedSeed : Uint8Array<ArrayBufferLike> | null //gives buffer
 
         let publicKeyEnc:string
         let privateKeyEnc:string
     
         if(pathType==="501"){
             //solana
+            path = `m/44'/${pathType}'/${accountIndex}'/0'`
+            derivedSeed = derivePath(path,seed.toString("hex")).key
            const {secretKey} = nacl.sign.keyPair.fromSeed(derivedSeed)// arrays of 32 and 64 bits for keys
     
             publicKeyEnc = Keypair.fromSecretKey(secretKey).publicKey.toBase58()
@@ -56,8 +58,22 @@ const generatewalletfromMnemonic = (
     
     
         }
+        //we have to write separately for eth as lib are different 
         else if(pathType==="60"){
             //eth
+            path = `m/44'/${pathType}'/0'/0/${accountIndex}`
+
+          const hd = HDKey.fromMasterSeed(seed);
+
+        const child = hd.derive(path);
+
+       derivedSeed = child.privateKey
+
+            if(derivedSeed===null){
+                throw new Error("failed to derive Private key")
+            }
+
+
             const privateKey = Buffer.from(derivedSeed).toString("hex")
              privateKeyEnc = privateKey
 
@@ -195,7 +211,18 @@ return(
     </div>
 )}
 
-
+{ wallets.length > 0 && (
+    <table>
+        <tbody>
+            {wallets.map((wallet)=> 
+                <tr key={wallet.privateKey}>
+                    <td>{wallet.path}</td>
+                    <td>{wallet.publicKey}</td>
+                </tr>
+            )}
+        </tbody>
+    </table>)
+}
 
 </div>
 
