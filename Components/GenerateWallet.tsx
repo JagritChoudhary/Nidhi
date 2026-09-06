@@ -11,6 +11,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { HDKey } from '@scure/bip32';
+import ThemeChanger from "./ui/theme-changer";
 
 
 type Wallet = {
@@ -175,24 +176,26 @@ const CopytoClipboard=(content:string)=>{
     toast.success("message copied successfully")
 }
 return(
-<div className="flex flex-col gap-4">
+<div className="flex flex-col gap-4 w-full mx-auto items-center justify-center p-10">
 {wallets.length===0 && pathType === "0" &&(
     
        <div>
     <div className="flex flex-col gap-4">
         <h1 className="tracking-tighter text-4xl font-black md:5-xl">Welcome to nidhi</h1>
             <p className="text-2xl font-light">A web wallet that support Sol & Eth</p>
-            <p className ="text-xl">pick one  </p>
+            <p className ="text-xl">Pick one  </p>
     </div>
 
       
 
-<div className="flex gap-2">
+<div className="flex gap-2 pt-3 ">
         <Button size={"lg"}
+        className= "cursor-pointer"
         onClick={()=>{setPathType("501"); toast.success("wallet selected successfully")}
         } >Solana</Button>
 
           <Button size={"lg"}
+           className= "cursor-pointer"
         onClick={()=>{setPathType("60"); toast.success("wallet selected successfully")}
         } >Eth</Button></div> 
 
@@ -200,28 +203,24 @@ return(
         </div>)}
 
 {pathType!=="0" &&(
-    <div className="flex  gap-2">
+    <div className="flex  gap-2 w-full">
         <Input placeholder="Enter recovery phrase or click on generate wallet"
         value={InputMnemonic}
         onChange={(e)=>setInputMnemonic(e.target.value)}
         type="password"
        >
         </Input>
-        <Button onClick={()=>{handleGenerateWallet()}}>{InputMnemonic ==="" ?"generate wallet" :"add wallet"}</Button>
+        <Button onClick={()=>{handleGenerateWallet()}}
+            className="cursor-pointer">{InputMnemonic ==="" ?"generate wallet" :"add wallet"}
+        </Button>
+        
     </div>
 )}
 
 { wallets.length > 0 && (
-    <table>
-        <tbody>
-            {wallets.map((wallet)=> 
-                <tr key={wallet.privateKey}>
-                    <td>{wallet.path}</td>
-                    <td>{wallet.publicKey}</td>
-                </tr>
-            )}
-        </tbody>
-    </table>)
+    <div>
+
+    </div>)
 }
 
 </div>
