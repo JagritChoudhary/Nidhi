@@ -161,8 +161,8 @@ const handleDelete=(deleteIndex:number)=>{
     toast.success("wallet deleted successfully")
 }
 
-const toggleVisibility=(index:number)=>{
-setVisiblePrivateKey(VisiblePrivateKey.map((visible,index)=>index === index ? !visible:visible))
+const toggleVisibility=(Walletindex:number)=>{
+setVisiblePrivateKey(VisiblePrivateKey.map((visible,index)=>index === Walletindex ? !visible : visible))
 }
 const clearWallets=()=>{
     localStorage.removeItem("wallets")
@@ -203,28 +203,67 @@ return(
        
         </div>)}
 
-{pathType!=="0" &&(
-    <div className="flex  gap-2 w-full">
-        <Input placeholder="Enter recovery phrase or click on generate wallet"
+{wallets.length ==0 && pathType!=="0" &&(
+    
+       <motion.div 
+       initial={{opacity:0,y:-20}}
+       animate={{opacity:1,y:0}}
+       transition={{ease:easeInOut,duration:0.3}}
+       className="flex flex-col w-full gap-2 p-6">
+        <h1 className="text-6xl pb-4 font-bold tracking-tighter">Secret Recovery Phrase</h1>
+        <div className="flex gap-2">
+        
+         <Input placeholder="Enter recovery phrase or click on generate wallet"
         value={InputMnemonic}
         onChange={(e)=>setInputMnemonic(e.target.value)}
         type="password"
+        className="py-4 h-full"
        >
         </Input>
         <Button onClick={()=>{handleGenerateWallet()}}
-            className="cursor-pointer">{InputMnemonic ==="" ?"generate wallet" :"add wallet"}
-        </Button>
+            className="cursor-pointer p-4 h-full">{InputMnemonic ==="" ?"Generate wallet" :"Add wallet"}
+        </Button></div>
+       </motion.div>
         
-    </div>
+    
 )}
 
-{ wallets.length > 0 && (
+{ mnemonicWords && wallets.length > 0 && (
+   
     <motion.div
     initial={{opacity:0,y:-20}}
     animate={{opacity:1,y:0}}
-    transition={{duration:0.6,ease:easeInOut}}>
+    transition={{duration:0.6,ease:easeInOut}}
+    className="flex flex-col gap-3 justify-center  w-full">
         {pathname} wallet
+        <div>{wallets.map((wallet:Wallet,index:number)=>
+        <motion.div 
+        key={index}  
+        initial={{opacity:0,y:-20}}
+        animate={{opacity:1,y:0}}
+        transition={{ease:easeInOut,duration:0.4}}
+            className="flex flex-col gap-2 w-full"
+        
+        >
+            <h1>Public key</h1>
+            <p>{wallet.publicKey}</p>
+           <div className="flex flex-col w-full"> <h1>Private Key</h1>
+           <div className="flex w-full"> <p>{VisiblePrivateKey[index]? wallet.privateKey : ".".repeat(wallet.mnemonic.length)}</p>
+           <Button variant="ghost"
+           onClick={()=>toggleVisibility(index)}>
+            {VisiblePrivateKey[index]?<Eye></Eye> : <EyeOff></EyeOff>}</Button></div></div>
+            <Button variant="ghost"
+            className="p-4" 
+            onClick={()=>handleAddWallet()}>Add wallet</Button>
+        </motion.div>)}</div>
+
+
+
+
+
     </motion.div>
+   
+  
    )
 }
 
