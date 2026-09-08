@@ -128,3 +128,25 @@
     @apply font-sans;
   }
 }
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  clip-path: circle(
+    0 at var(--theme-x) var(--theme-y)
+  );
+
+  animation: theme-reveal 1200ms ease-out forwards;
+}
+
+@keyframes theme-reveal {
+  to {
+    clip-path: circle(
+      150vmax at var(--theme-x) var(--theme-y)
+    );
+  }}
+

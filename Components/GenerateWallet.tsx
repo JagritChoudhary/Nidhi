@@ -11,7 +11,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { HDKey } from '@scure/bip32';
-import ThemeChanger from "./ui/theme-changer";
+import {easeInOut, motion} from 'motion/react'
+
 
 
 type Wallet = {
@@ -218,9 +219,13 @@ return(
 )}
 
 { wallets.length > 0 && (
-    <div>
-
-    </div>)
+    <motion.div
+    initial={{opacity:0,y:-20}}
+    animate={{opacity:1,y:0}}
+    transition={{duration:0.6,ease:easeInOut}}>
+        {pathname} wallet
+    </motion.div>
+   )
 }
 
 </div>
