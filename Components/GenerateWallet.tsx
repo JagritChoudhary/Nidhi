@@ -7,7 +7,7 @@ import { useState } from "react";
 import bs58 from "bs58"
 import {ethers} from "ethers"
 import {toast} from "sonner"
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff ,ChevronDown,ChevronUp} from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { HDKey } from '@scure/bip32';
@@ -27,6 +27,7 @@ const [pathType , setPathType] = useState<"60"|"501"|"0">("0")
 const [mnemonicWords,setMnemonicWords] = useState<string[]>(Array(12).fill(""))
 const[InputMnemonic,setInputMnemonic]= useState<string>("")
 const[VisiblePrivateKey,setVisiblePrivateKey] = useState<boolean[]>([false]) 
+const[phraseVisibility,setPhraseVisibility] = useState<boolean>(false)
 const[wallets,setWallets] = useState<Wallet[]>([])
 
 const pathTypeNames:{[key:string]:string}={
@@ -164,6 +165,8 @@ const handleDelete=(deleteIndex:number)=>{
 const toggleVisibility=(Walletindex:number)=>{
 setVisiblePrivateKey(VisiblePrivateKey.map((visible,index)=>index === Walletindex ? !visible : visible))
 }
+
+
 const clearWallets=()=>{
     localStorage.removeItem("wallets")
     localStorage.removeItem("mnemonic")
@@ -229,40 +232,48 @@ return(
 )}
 
 { mnemonicWords && wallets.length > 0 && (
+  <motion.div
+  initial={{opacity:0,y:-20}}
+  animate={{opacity:1,y:0}}
+  transition={{ease:easeInOut,duration:0.4}}
+  className="flex  flex-col w-full gap-2 rounded-lg border border-gray-100/40"
+  >
+    <div className="p-6  w-full flex justify-between">
+    
+    <h1 className="text-4xl font-semibold">Your Recovery Phrase</h1>
+    <Button variant="ghost"  className="cursor-pointer" onClick={()=>setPhraseVisibility(!phraseVisibility)}>
+        {phraseVisibility ? 
+   <ChevronUp></ChevronUp> : <ChevronDown></ChevronDown>}
+   </Button> 
+   </div>
+   <div>{mnemonicWords}</div>
+   {phraseVisibility && (
+   <motion.div
+  initial={{opacity:0,y:-20}}
+  animate={{opacity:1,y:0}}
+  transition={{ease:easeInOut,duration:0.4}}
+  className="flex flex-col w-full justify-center items-center cursor-pointer"
+  onClick={()=>CopytoClipboard(mnemonicWords.join(""))}
+  >
+<motion.div
+  initial={{opacity:0,y:-20}}
+  animate={{opacity:1,y:0}}
+  transition={{ease:easeInOut,duration:0.4}}
+  className="grid grid-col "
+  >
+
+
+{mnemonicWords.map((word,index)=><p key={index}
+className="md:text-lg bg-foreground/5">{word}</p>)}
+  </motion.div> 
+
+  </motion.div> )}
+
+  
    
-    <motion.div
-    initial={{opacity:0,y:-20}}
-    animate={{opacity:1,y:0}}
-    transition={{duration:0.6,ease:easeInOut}}
-    className="flex flex-col gap-3 justify-center  w-full">
-        {pathname} wallet
-        <div>{wallets.map((wallet:Wallet,index:number)=>
-        <motion.div 
-        key={index}  
-        initial={{opacity:0,y:-20}}
-        animate={{opacity:1,y:0}}
-        transition={{ease:easeInOut,duration:0.4}}
-            className="flex flex-col gap-2 w-full"
-        
-        >
-            <h1>Public key</h1>
-            <p>{wallet.publicKey}</p>
-           <div className="flex flex-col w-full"> <h1>Private Key</h1>
-           <div className="flex w-full"> <p>{VisiblePrivateKey[index]? wallet.privateKey : ".".repeat(wallet.mnemonic.length)}</p>
-           <Button variant="ghost"
-           onClick={()=>toggleVisibility(index)}>
-            {VisiblePrivateKey[index]?<Eye></Eye> : <EyeOff></EyeOff>}</Button></div></div>
-            <Button variant="ghost"
-            className="p-4" 
-            onClick={()=>handleAddWallet()}>Add wallet</Button>
-        </motion.div>)}</div>
 
-
-
-
-
-    </motion.div>
-   
+  </motion.div> 
+    
   
    )
 }
