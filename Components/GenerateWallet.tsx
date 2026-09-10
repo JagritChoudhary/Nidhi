@@ -7,11 +7,12 @@ import { useState } from "react";
 import bs58 from "bs58"
 import {ethers} from "ethers"
 import {toast} from "sonner"
-import { Eye, EyeOff ,ChevronDown,ChevronUp} from "lucide-react";
+import { Eye, EyeOff ,ChevronDown,ChevronUp,Copy} from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { HDKey } from '@scure/bip32';
 import {easeInOut, motion} from 'motion/react'
+import path from "path";
 
 
 
@@ -31,8 +32,8 @@ const[phraseVisibility,setPhraseVisibility] = useState<boolean>(false)
 const[wallets,setWallets] = useState<Wallet[]>([])
 
 const pathTypeNames:{[key:string]:string}={
-    '501':"solana",
-    '60':"eth"
+    '501':"Solana",
+    '60':"Ethereum"
 }
 const pathname = pathTypeNames[pathType]
 
@@ -115,8 +116,11 @@ const handleGenerateWallet = ()=>{
             mnemonic = generateMnemonic()
         }
     
-const words = mnemonic.split("")
+const words = mnemonic.split(" ")
 setMnemonicWords(words)
+
+
+
 
 const wallet = generatewalletfromMnemonic(
     pathType,
@@ -174,13 +178,14 @@ const clearWallets=()=>{
     setWallets([])
     setMnemonicWords([])
     setVisiblePrivateKey([])
+    setPathType("0")
 }
 const CopytoClipboard=(content:string)=>{
     navigator.clipboard.writeText(content)
     toast.success("message copied successfully")
 }
 return(
-<div className="flex flex-col gap-4 w-full mx-auto items-center justify-center p-10">
+<div className="flex flex-col gap-4 w-full mx-auto items-center justify-center p-6">
 {wallets.length===0 && pathType === "0" &&(
     
        <div>
@@ -236,9 +241,10 @@ return(
   initial={{opacity:0,y:-20}}
   animate={{opacity:1,y:0}}
   transition={{ease:easeInOut,duration:0.4}}
-  className="flex  flex-col w-full gap-2 rounded-lg border border-gray-100/40"
+  className="flex  flex-col w-full gap-2 rounded-lg border border-primary/20 p-6  cursor-pointer"
+  onClick={()=>setPhraseVisibility(!phraseVisibility)}
   >
-    <div className="p-6  w-full flex justify-between">
+    <div className="p-4  w-full flex justify-between">
     
     <h1 className="text-4xl font-semibold">Your Recovery Phrase</h1>
     <Button variant="ghost"  className="cursor-pointer" onClick={()=>setPhraseVisibility(!phraseVisibility)}>
@@ -246,7 +252,7 @@ return(
    <ChevronUp></ChevronUp> : <ChevronDown></ChevronDown>}
    </Button> 
    </div>
-   <div>{mnemonicWords}</div>
+   <div>{}</div>
    {phraseVisibility && (
    <motion.div
   initial={{opacity:0,y:-20}}
@@ -259,24 +265,58 @@ return(
   initial={{opacity:0,y:-20}}
   animate={{opacity:1,y:0}}
   transition={{ease:easeInOut,duration:0.4}}
-  className="grid grid-col "
+  className="grid grid-cols-2 gap-2 w-full justify-center items-center mx-auto my-5 md:grid-cols-3 lg:grid-cols-4"
   >
 
 
 {mnemonicWords.map((word,index)=><p key={index}
-className="md:text-lg bg-foreground/5">{word}</p>)}
+className="md:text-lg bg-foreground/5 flex w-full items-center justify-center p-4 rounded-lg">{word}</p>)}
   </motion.div> 
+<p className="flex w-full gap-2 text-xl font-extralight">Click anywhere to copy <Copy></Copy></p>
 
   </motion.div> )}
+  
 
   
-   
-
   </motion.div> 
+
     
   
    )
 }
+
+{wallets.length>0 &&(
+    <motion.div
+  initial={{opacity:0,y:-20}}
+  animate={{opacity:1,y:0}}
+  transition={{ease:easeInOut,duration:0.4}}
+  className="flex flex-col w-full p-8 px-0 gap-2"
+  >
+    { <div className="flex justify-between items-center p-2"><h1 className="font-semibold text-4xl p-4 ">{pathname} Wallet</h1>
+    <Button onClick={()=>clearWallets()} className="self-end p-5 cursor-pointer mr-12 mb-2 text-white" variant="destructive">Clear wallets</Button></div>
+        
+       }
+    
+{wallets.map((wallet:Wallet,index:number)=>(
+    
+    <div key={index} className="p-8  mx-auto w-full border border-primary/30 rounded-lg ">
+        <h1 className="font-semibold text-2xl p-2 flex justify-between">Wallet {index+1}
+            <Button onClick={()=>handleAddWallet()} className="bg-white/90 p-4 mr-5 cursor-pointer">Add wallet</Button>
+        </h1>
+        <div className="text-xl p-2">Public key
+             <p className="text-lg font-light">{wallet.publicKey}</p>
+        </div>
+        <div className="text-xl p-2 ">Private key
+            <p className="text-lg font-light gap-2 flex">{VisiblePrivateKey[index] ? wallet.privateKey : ".".repeat(wallet.mnemonic.length)}
+            <Button variant="ghost" size="lg" className="cursor-pointer"
+            onClick={()=>toggleVisibility(index)}>{VisiblePrivateKey? <EyeOff></EyeOff>:<Eye></Eye>}</Button></p>
+        </div>
+       
+    </div>
+))}
+  </motion.div> 
+  
+)}
 
 </div>
 
