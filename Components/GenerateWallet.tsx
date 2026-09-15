@@ -7,12 +7,12 @@ import { useState } from "react";
 import bs58 from "bs58"
 import {ethers} from "ethers"
 import {toast} from "sonner"
-import { Eye, EyeOff ,ChevronDown,ChevronUp,Copy} from "lucide-react";
+import { Eye, EyeOff ,ChevronDown,ChevronUp,Copy, Trash2} from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { HDKey } from '@scure/bip32';
 import {easeInOut, motion} from 'motion/react'
-import path from "path";
+
 
 
 
@@ -301,7 +301,9 @@ className="md:text-lg bg-foreground/5 flex w-full items-center justify-center p-
     
     <div key={index} className="p-8  mx-auto w-full border border-primary/30 rounded-lg ">
         <h1 className="font-semibold text-2xl p-2 flex justify-between">Wallet {index+1}
-            <Button onClick={()=>handleAddWallet()} className="bg-white/90 p-4 mr-5 cursor-pointer">Add wallet</Button>
+           <div> <Button onClick={()=>handleAddWallet()} className="bg-white/90 p-4 mr-5 cursor-pointer">Add wallet</Button>
+            <Button variant="destructive"
+            onClick={()=>handleDelete(index)}><Trash2></Trash2></Button></div>
         </h1>
         <div className="text-xl p-2">Public key
              <p className="text-lg font-light">{wallet.publicKey}</p>
