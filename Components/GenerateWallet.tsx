@@ -3,11 +3,11 @@ import nacl from "tweetnacl";
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "bip39";
 import { derivePath } from "ed25519-hd-key";
 import { Keypair } from "@solana/web3.js";
-import { useState } from "react";
+import { useEffect, useState} from "react";
 import bs58 from "bs58"
 import {ethers} from "ethers"
 import {toast} from "sonner"
-import { Eye, EyeOff ,ChevronDown,ChevronUp,Copy, Trash2} from "lucide-react";
+import { Eye, EyeOff ,ChevronDown,ChevronUp,Copy, Trash2, Wallet} from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { HDKey } from '@scure/bip32';
@@ -16,7 +16,7 @@ import {easeInOut, motion} from 'motion/react'
 
 
 
-type Wallet = {
+interface Wallet  {
     publicKey:string,
     privateKey:string,
     mnemonic:string,
@@ -30,6 +30,9 @@ const[InputMnemonic,setInputMnemonic]= useState<string>("")
 const[VisiblePrivateKey,setVisiblePrivateKey] = useState<boolean[]>([false]) 
 const[phraseVisibility,setPhraseVisibility] = useState<boolean>(false)
 const[wallets,setWallets] = useState<Wallet[]>([])
+const[balance,setBalance] = useState<bigint | undefined>()
+const[address,setAddress] = useState<string>("")
+
 
 const pathTypeNames:{[key:string]:string}={
     '501':"Solana",
@@ -71,7 +74,7 @@ const generatewalletfromMnemonic = (
 
         const child = hd.derive(path);
 
-       derivedSeed = child.privateKey
+       derivedSeed = child.privateKey //buffer as private key
 
             if(derivedSeed===null){
                 throw new Error("failed to derive Private key")
@@ -135,6 +138,8 @@ if(wallet){
     localStorage.setItem("mnemonics",JSON.stringify(words))
     localStorage.setItem("path",JSON.stringify(pathType))
     setVisiblePrivateKey([...VisiblePrivateKey,false])
+    setAddress(wallet.publicKey)
+
     toast.success("Wallet successfully generated")
 }
 
@@ -155,6 +160,7 @@ if(wallet){
     localStorage.setItem("wallets",JSON.stringify(updatedWallets))
     localStorage.setItem("path",JSON.stringify(pathType))
     setVisiblePrivateKey([...VisiblePrivateKey,false])
+    setAddress(wallet.publicKey)
     toast.success("Wallet successfully generated")
 }
 }
@@ -184,6 +190,29 @@ const CopytoClipboard=(content:string)=>{
     navigator.clipboard.writeText(content)
     toast.success("message copied successfully")
 }
+
+
+
+
+useEffect(()=>{
+    const ShowEthBalance = async (address : string)=>{
+try {
+    const response = await fetch(`/api/EthBalance?address=${address}`)
+    const data = await response.json()
+    if(!response.ok){
+        console.log("error fetching balance",data.error); //type definition
+        return
+    }
+    setBalance(data.balance)
+} catch (error) {
+    console.log(error);
+    
+}}
+ShowEthBalance(address)
+   
+},[address])
+
+
 return(
 <div className="flex flex-col gap-4 w-full mx-auto items-center justify-center p-6">
 {wallets.length===0 && pathType === "0" &&(
@@ -292,15 +321,19 @@ className="md:text-lg bg-foreground/5 flex w-full items-center justify-center p-
   transition={{ease:easeInOut,duration:0.4}}
   className="flex flex-col w-full p-8 px-0 gap-2"
   >
+    
     { <div className="flex justify-between items-center p-2"><h1 className="font-semibold text-4xl p-4 ">{pathname} Wallet</h1>
-    <Button onClick={()=>clearWallets()} className="self-end p-5 cursor-pointer mr-12 mb-2 text-white" variant="destructive">Clear wallets</Button></div>
+    <Button onClick={()=>clearWallets()} className="self-end p-5 cursor-pointer mr-12 mb-2 text-white" variant="destructive">Clear wallets</Button>
+    </div>
         
        }
     
 {wallets.map((wallet:Wallet,index:number)=>(
-    
-    <div key={index} className="p-8  mx-auto w-full border border-primary/30 rounded-lg ">
+
+    <div key={index}  className="p-8  mx-auto w-full border border-primary/30 rounded-lg ">
         <h1 className="font-semibold text-2xl p-2 flex justify-between">Wallet {index+1}
+           
+            <div>Balance {balance}</div>
            <div> <Button onClick={()=>handleAddWallet()} className="bg-white/90 p-4 mr-5 cursor-pointer">Add wallet</Button>
             <Button variant="destructive"
             onClick={()=>handleDelete(index)}><Trash2></Trash2></Button></div>
