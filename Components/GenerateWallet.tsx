@@ -12,7 +12,6 @@ import {
   Eye,
   EyeOff,
   Trash2,
-  Wallet,
 } from "lucide-react";
 import { easeInOut, motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -25,8 +24,14 @@ interface Wallet {
   publicKey: string;
   privateKey: string;
   mnemonic: string;
-  path: string; //'60' or '501'
+  path: string;//'60' or '501'
+  balance:number
 }
+type data = {
+    balance:number
+    statusCode:number
+}
+
 export default function GenerateWallet() {
   const [pathType, setPathType] = useState<"60" | "501" | "0">("0");
   const [mnemonicWords, setMnemonicWords] = useState<string[]>(
@@ -38,7 +43,7 @@ export default function GenerateWallet() {
   ]);
   const [phraseVisibility, setPhraseVisibility] = useState<boolean>(false);
   const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [balance, setBalance] = useState<bigint | undefined>();
+
   const [address, setAddress] = useState<string>("");
 
   const pathTypeNames: { [key: string]: string } = {
@@ -51,7 +56,7 @@ export default function GenerateWallet() {
     pathType: string,
     mnemonic: string,
     accountIndex: number,
-  ): Wallet | null => {
+  ) => {
     try {
       const seed = mnemonicToSeedSync(mnemonic);
       let path: string;
@@ -59,6 +64,7 @@ export default function GenerateWallet() {
 
       let publicKeyEnc: string;
       let privateKeyEnc: string;
+     const balance:number = 0
 
       if (pathType === "501") {
         //solana
@@ -68,6 +74,7 @@ export default function GenerateWallet() {
 
         publicKeyEnc = Keypair.fromSecretKey(secretKey).publicKey.toBase58();
         privateKeyEnc = bs58.encode(secretKey);
+       
       }
       //we have to write separately for eth as lib are different
       else if (pathType === "60") {
@@ -89,6 +96,7 @@ export default function GenerateWallet() {
 
         const wallet = new ethers.Wallet(privateKey);
         publicKeyEnc = wallet.address;
+      
       } else {
         toast.error("Unsupported path");
         return null;
@@ -98,6 +106,9 @@ export default function GenerateWallet() {
         privateKey: privateKeyEnc,
         mnemonic,
         path,
+        balance
+        
+     
       };
     } catch (error) {
       console.log(error);
@@ -135,14 +146,15 @@ export default function GenerateWallet() {
       localStorage.setItem("path", JSON.stringify(pathType));
       setVisiblePrivateKey([...VisiblePrivateKey, false]);
       setAddress(wallet.publicKey);
-
       toast.success("Wallet successfully generated");
     }
   };
+
   const handleAddWallet = () => {
     if (!wallets) {
       toast.error("Please generate wallets first");
     }
+
     const wallet = generatewalletfromMnemonic(
       pathType,
       mnemonicWords.join(""),
@@ -154,7 +166,7 @@ export default function GenerateWallet() {
       localStorage.setItem("wallets", JSON.stringify(updatedWallets));
       localStorage.setItem("path", JSON.stringify(pathType));
       setVisiblePrivateKey([...VisiblePrivateKey, false]);
-    //   setAddress(wallet.publicKey);
+      setAddress(wallet.publicKey);
       toast.success("Wallet successfully generated");
     }
   };
@@ -167,7 +179,6 @@ export default function GenerateWallet() {
       VisiblePrivateKey.filter((_, index) => index !== deleteIndex),
     );
     localStorage.setItem("wallets", JSON.stringify(updatedWallets));
-
     toast.success("wallet deleted successfully");
   };
 
@@ -183,50 +194,57 @@ export default function GenerateWallet() {
     localStorage.removeItem("wallets");
     localStorage.removeItem("mnemonics");
     localStorage.removeItem("path");
-   
-    setWallets([])
-    console.log(wallets.length);
-    
-    setMnemonicWords([])
-    console.log(mnemonicWords);
-    
-    setVisiblePrivateKey([])
-    console.log(VisiblePrivateKey);
-    
-   
+
+    setWallets([]);
+
+    setMnemonicWords([]);
+
+    setVisiblePrivateKey([]);
+    setInputMnemonic("");
+    setPathType("0");
   };
   const CopytoClipboard = (content: string) => {
     navigator.clipboard.writeText(content);
     toast.success("message copied successfully");
   };
+  
+  
 
   useEffect(() => {
-    if (pathType === "60") {
-      const ShowEthBalance = async (address: string) => {
+   
+
+    
+    if (pathType === "60" ) {
+      const ShowEthBalance = async (address:string) => {
         try {
+          if (!address) return;
           const response = await fetch(`/api/EthBalance?address=${address}`);
-          const data = await response.json();
+          const data:data = await response.json();
           if (!response.ok) {
-            console.log("error fetching balance", data.error); //type definition
+            console.log("error fetching balance"); //type definition
             return;
           }
-          setBalance(data.balance);
+          setWallets(prev=>prev.map((wallet:Wallet)=>wallet.publicKey == address ? {...wallet,balance:data.balance}:wallet))
+
+      
         } catch (error) {
           console.log(error);
         }
+      
       };
-      ShowEthBalance(address);
+        ShowEthBalance(address);
     }
-    if (pathType === "501") {
+    if (pathType === "501" ) {
       const ShowSolBalance = async (address: string) => {
         try {
+          if (!address) return;
           const response = await fetch(`/api/SolBalance?address=${address}`);
-          const data = await response.json();
+          const data:data = await response.json();
           if (!response.ok) {
-            console.log("error fetching balance", data.error); //type definition
+            console.log("error fetching balance")
             return;
           }
-          setBalance(data.balance);
+          setWallets(prev=>prev.map((wallet:Wallet)=>wallet.publicKey == address ? {...wallet,balance:data.balance}:wallet))
         } catch (error) {
           console.log(error);
         }
@@ -234,7 +252,7 @@ export default function GenerateWallet() {
 
       ShowSolBalance(address);
     }
-  });
+  },[address,pathType]);
 
   return (
     <div className="flex flex-col gap-4 w-full mx-auto items-center justify-center p-6">
@@ -387,9 +405,9 @@ export default function GenerateWallet() {
             >
               <h1 className="font-semibold text-2xl p-2 flex justify-between">
                 Wallet {index + 1}
-                <div>Balance {balance}</div>
+                <div>Balance {wallet.balance}</div>
                 <div>
-                  {" "}
+                 
                   <Button
                     onClick={() => handleAddWallet()}
                     className="bg-white/90 p-4 mr-5 cursor-pointer"

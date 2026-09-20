@@ -1,6 +1,9 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { NextRequest, NextResponse } from "next/server";
-
+type data = {
+    balance:number
+    statusCode:number
+}
 
 export async function GET(req:NextRequest){
     try {
@@ -11,7 +14,8 @@ export async function GET(req:NextRequest){
         const connection = new Connection(process.env.SOL_RPC_URL!)
         const publicKey = new PublicKey(address!)
         const balance = await connection.getBalance(publicKey)
-        return NextResponse.json({balance:balance},{status:200})
+        const response : data ={balance :balance/1000000000,statusCode:200} 
+        return NextResponse.json(response)
 
     } catch (error) {
         console.log(error);
