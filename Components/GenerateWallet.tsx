@@ -1,363 +1,433 @@
-"use client"
-import nacl from "tweetnacl";
-import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "bip39";
-import { derivePath } from "ed25519-hd-key";
+"use client";
+import { HDKey } from "@scure/bip32";
 import { Keypair } from "@solana/web3.js";
-import { useEffect, useState} from "react";
-import bs58 from "bs58"
-import {ethers} from "ethers"
-import {toast} from "sonner"
-import { Eye, EyeOff ,ChevronDown,ChevronUp,Copy, Trash2, Wallet} from "lucide-react";
+import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "bip39";
+import bs58 from "bs58";
+import { derivePath } from "ed25519-hd-key";
+import { ethers } from "ethers";
+import {
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Eye,
+  EyeOff,
+  Trash2,
+  Wallet,
+} from "lucide-react";
+import { easeInOut, motion } from "motion/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import nacl from "tweetnacl";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { HDKey } from '@scure/bip32';
-import {easeInOut, motion} from 'motion/react'
 
-
-
-
-interface Wallet  {
-    publicKey:string,
-    privateKey:string,
-    mnemonic:string,
-    path:string //'60' or '501'
-
+interface Wallet {
+  publicKey: string;
+  privateKey: string;
+  mnemonic: string;
+  path: string; //'60' or '501'
 }
-export default function GenerateWallet(){
-const [pathType , setPathType] = useState<"60"|"501"|"0">("0")
-const [mnemonicWords,setMnemonicWords] = useState<string[]>(Array(12).fill(""))
-const[InputMnemonic,setInputMnemonic]= useState<string>("")
-const[VisiblePrivateKey,setVisiblePrivateKey] = useState<boolean[]>([false]) 
-const[phraseVisibility,setPhraseVisibility] = useState<boolean>(false)
-const[wallets,setWallets] = useState<Wallet[]>([])
-const[balance,setBalance] = useState<bigint | undefined>()
-const[address,setAddress] = useState<string>("")
+export default function GenerateWallet() {
+  const [pathType, setPathType] = useState<"60" | "501" | "0">("0");
+  const [mnemonicWords, setMnemonicWords] = useState<string[]>(
+    Array(12).fill(""),
+  );
+  const [InputMnemonic, setInputMnemonic] = useState<string>("");
+  const [VisiblePrivateKey, setVisiblePrivateKey] = useState<boolean[]>([
+    false,
+  ]);
+  const [phraseVisibility, setPhraseVisibility] = useState<boolean>(false);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [balance, setBalance] = useState<bigint | undefined>();
+  const [address, setAddress] = useState<string>("");
 
+  const pathTypeNames: { [key: string]: string } = {
+    "501": "Solana",
+    "60": "Ethereum",
+  };
+  const pathname = pathTypeNames[pathType];
 
-const pathTypeNames:{[key:string]:string}={
-    '501':"Solana",
-    '60':"Ethereum"
-}
-const pathname = pathTypeNames[pathType]
-
-
-const generatewalletfromMnemonic = (
-    pathType :string,
-    mnemonic :string,
-    accountIndex:number
-):Wallet | null =>{
+  const generatewalletfromMnemonic = (
+    pathType: string,
+    mnemonic: string,
+    accountIndex: number,
+  ): Wallet | null => {
     try {
-        const seed = mnemonicToSeedSync(mnemonic);
-        let path :string ;
-        let derivedSeed : Uint8Array<ArrayBufferLike> | null //gives buffer
+      const seed = mnemonicToSeedSync(mnemonic);
+      let path: string;
+      let derivedSeed: Uint8Array<ArrayBufferLike> | null; //gives buffer
 
-        let publicKeyEnc:string
-        let privateKeyEnc:string
-    
-        if(pathType==="501"){
-            //solana
-            path = `m/44'/${pathType}'/${accountIndex}'/0'`
-            derivedSeed = derivePath(path,seed.toString("hex")).key
-           const {secretKey} = nacl.sign.keyPair.fromSeed(derivedSeed)// arrays of 32 and 64 bits for keys
-    
-            publicKeyEnc = Keypair.fromSecretKey(secretKey).publicKey.toBase58()
-            privateKeyEnc = bs58.encode(secretKey)
-    
-    
-        }
-        //we have to write separately for eth as lib are different 
-        else if(pathType==="60"){
-            //eth
-            path = `m/44'/${pathType}'/0'/0/${accountIndex}`
+      let publicKeyEnc: string;
+      let privateKeyEnc: string;
 
-          const hd = HDKey.fromMasterSeed(seed);
+      if (pathType === "501") {
+        //solana
+        path = `m/44'/${pathType}'/${accountIndex}'/0'`;
+        derivedSeed = derivePath(path, seed.toString("hex")).key;
+        const { secretKey } = nacl.sign.keyPair.fromSeed(derivedSeed); // arrays of 32 and 64 bits for keys
+
+        publicKeyEnc = Keypair.fromSecretKey(secretKey).publicKey.toBase58();
+        privateKeyEnc = bs58.encode(secretKey);
+      }
+      //we have to write separately for eth as lib are different
+      else if (pathType === "60") {
+        //eth
+        path = `m/44'/${pathType}'/0'/0/${accountIndex}`;
+
+        const hd = HDKey.fromMasterSeed(seed);
 
         const child = hd.derive(path);
 
-       derivedSeed = child.privateKey //buffer as private key
+        derivedSeed = child.privateKey; //buffer as private key
 
-            if(derivedSeed===null){
-                throw new Error("failed to derive Private key")
-            }
-
-
-            const privateKey = Buffer.from(derivedSeed).toString("hex")
-             privateKeyEnc = privateKey
-
-            const wallet  = new ethers.Wallet(privateKey)
-             publicKeyEnc = wallet.address
-            
-
+        if (derivedSeed === null) {
+          throw new Error("failed to derive Private key");
         }
-        else{toast.error("Unsupported path")
-            return null
-        }
-        return{
-            publicKey : publicKeyEnc,
-            privateKey : privateKeyEnc,
-            mnemonic,
-            path
-        }
+
+        const privateKey = Buffer.from(derivedSeed).toString("hex");
+        privateKeyEnc = privateKey;
+
+        const wallet = new ethers.Wallet(privateKey);
+        publicKeyEnc = wallet.address;
+      } else {
+        toast.error("Unsupported path");
+        return null;
+      }
+      return {
+        publicKey: publicKeyEnc,
+        privateKey: privateKeyEnc,
+        mnemonic,
+        path,
+      };
     } catch (error) {
       console.log(error);
-      
-        toast.error("Failed to generate wallet")
-        return null
+
+      toast.error("Failed to generate wallet");
+      return null;
     }
-}
+  };
 
-const handleGenerateWallet = ()=>{
-    let mnemonic = InputMnemonic.trim()
-    if(mnemonic){
-        if(!validateMnemonic(mnemonic)){
-            toast.error("Invalid secret Phrase")
-            return
-        }    
-    
-    }else{
-         //when no phrase given
-            mnemonic = generateMnemonic()
-        }
-    
-const words = mnemonic.split(" ")
-setMnemonicWords(words)
-
-
-
-
-const wallet = generatewalletfromMnemonic(
-    pathType,
-    mnemonic,
-    wallets.length
-    
-)
-if(wallet){
-    const updatedWallets = [...wallets,wallet]
-    setWallets(updatedWallets)
-    localStorage.setItem("wallets",JSON.stringify(updatedWallets))
-    localStorage.setItem("mnemonics",JSON.stringify(words))
-    localStorage.setItem("path",JSON.stringify(pathType))
-    setVisiblePrivateKey([...VisiblePrivateKey,false])
-    setAddress(wallet.publicKey)
-
-    toast.success("Wallet successfully generated")
-}
-
-
-}
-const handleAddWallet=()=>{
-if(!wallets){
-    toast.error("Please generate wallets first")
-}
-const wallet = generatewalletfromMnemonic(
-    pathType,
-    mnemonicWords.join(''),
-    wallets.length
-)
-if(wallet){
-    const updatedWallets = [...wallets,wallet]
-    setWallets(updatedWallets)
-    localStorage.setItem("wallets",JSON.stringify(updatedWallets))
-    localStorage.setItem("path",JSON.stringify(pathType))
-    setVisiblePrivateKey([...VisiblePrivateKey,false])
-    setAddress(wallet.publicKey)
-    toast.success("Wallet successfully generated")
-}
-}
-const handleDelete=(deleteIndex:number)=>{
-    const updatedWallets = wallets.filter((_,index)=>index!==deleteIndex)
-    setWallets(updatedWallets)
-    setVisiblePrivateKey(VisiblePrivateKey.filter((_,index)=>index!==deleteIndex))
-    localStorage.setItem("wallets",JSON.stringify(updatedWallets))
-    toast.success("wallet deleted successfully")
-}
-
-const toggleVisibility=(Walletindex:number)=>{
-setVisiblePrivateKey(VisiblePrivateKey.map((visible,index)=>index === Walletindex ? !visible : visible))
-}
-
-
-const clearWallets=()=>{
-    localStorage.removeItem("wallets")
-    localStorage.removeItem("mnemonic")
-    localStorage.removeItem("path")
-    setWallets([])
-    setMnemonicWords([])
-    setVisiblePrivateKey([])
-    setPathType("0")
-}
-const CopytoClipboard=(content:string)=>{
-    navigator.clipboard.writeText(content)
-    toast.success("message copied successfully")
-}
-
-
-
-
-useEffect(()=>{
-    const ShowEthBalance = async (address : string)=>{
-try {
-    const response = await fetch(`/api/EthBalance?address=${address}`)
-    const data = await response.json()
-    if(!response.ok){
-        console.log("error fetching balance",data.error); //type definition
-        return
+  const handleGenerateWallet = () => {
+    let mnemonic = InputMnemonic.trim();
+    if (mnemonic) {
+      if (!validateMnemonic(mnemonic)) {
+        toast.error("Invalid secret Phrase");
+        return;
+      }
+    } else {
+      //when no phrase given
+      mnemonic = generateMnemonic();
     }
-    setBalance(data.balance)
-} catch (error) {
-    console.log(error);
-    
-}}
-ShowEthBalance(address)
+
+    const words = mnemonic.split(" ");
+    setMnemonicWords(words);
+
+    const wallet = generatewalletfromMnemonic(
+      pathType,
+      mnemonic,
+      wallets.length,
+    );
+    if (wallet) {
+      const updatedWallets = [...wallets, wallet];
+      setWallets(updatedWallets);
+      localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+      localStorage.setItem("mnemonics", JSON.stringify(words));
+      localStorage.setItem("path", JSON.stringify(pathType));
+      setVisiblePrivateKey([...VisiblePrivateKey, false]);
+      setAddress(wallet.publicKey);
+
+      toast.success("Wallet successfully generated");
+    }
+  };
+  const handleAddWallet = () => {
+    if (!wallets) {
+      toast.error("Please generate wallets first");
+    }
+    const wallet = generatewalletfromMnemonic(
+      pathType,
+      mnemonicWords.join(""),
+      wallets.length,
+    );
+    if (wallet) {
+      const updatedWallets = [...wallets, wallet];
+      setWallets(updatedWallets);
+      localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+      localStorage.setItem("path", JSON.stringify(pathType));
+      setVisiblePrivateKey([...VisiblePrivateKey, false]);
+    //   setAddress(wallet.publicKey);
+      toast.success("Wallet successfully generated");
+    }
+  };
+  const handleDelete = (deleteIndex: number) => {
+    setPathType("0");
+
+    const updatedWallets = wallets.filter((_, index) => index !== deleteIndex);
+    setWallets(updatedWallets);
+    setVisiblePrivateKey(
+      VisiblePrivateKey.filter((_, index) => index !== deleteIndex),
+    );
+    localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+
+    toast.success("wallet deleted successfully");
+  };
+
+  const toggleVisibility = (Walletindex: number) => {
+    setVisiblePrivateKey(
+      VisiblePrivateKey.map((visible, index) =>
+        index === Walletindex ? !visible : visible,
+      ),
+    );
+  };
+
+  const clearWallets = () => {
+    localStorage.removeItem("wallets");
+    localStorage.removeItem("mnemonics");
+    localStorage.removeItem("path");
    
-},[address])
-
-
-return(
-<div className="flex flex-col gap-4 w-full mx-auto items-center justify-center p-6">
-{wallets.length===0 && pathType === "0" &&(
+    setWallets([])
+    console.log(wallets.length);
     
-       <div>
-    <div className="flex flex-col gap-4">
-        <h1 className="tracking-tighter text-4xl font-black md:5-xl">Welcome to nidhi</h1>
-            <p className="text-2xl font-light">A web wallet that support Sol & Eth</p>
-            <p className ="text-xl">Pick one  </p>
+    setMnemonicWords([])
+    console.log(mnemonicWords);
+    
+    setVisiblePrivateKey([])
+    console.log(VisiblePrivateKey);
+    
+   
+  };
+  const CopytoClipboard = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast.success("message copied successfully");
+  };
+
+  useEffect(() => {
+    if (pathType === "60") {
+      const ShowEthBalance = async (address: string) => {
+        try {
+          const response = await fetch(`/api/EthBalance?address=${address}`);
+          const data = await response.json();
+          if (!response.ok) {
+            console.log("error fetching balance", data.error); //type definition
+            return;
+          }
+          setBalance(data.balance);
+        } catch (error) {
+          console.log(error);
+        }
+      };
+      ShowEthBalance(address);
+    }
+    if (pathType === "501") {
+      const ShowSolBalance = async (address: string) => {
+        try {
+          const response = await fetch(`/api/SolBalance?address=${address}`);
+          const data = await response.json();
+          if (!response.ok) {
+            console.log("error fetching balance", data.error); //type definition
+            return;
+          }
+          setBalance(data.balance);
+        } catch (error) {
+          console.log(error);
+        }
+      };
+
+      ShowSolBalance(address);
+    }
+  });
+
+  return (
+    <div className="flex flex-col gap-4 w-full mx-auto items-center justify-center p-6">
+      {wallets.length === 0 && pathType === "0" && (
+        <div>
+          <div className="flex flex-col gap-4">
+            <h1 className="tracking-tighter text-4xl font-black md:5-xl">
+              Welcome to nidhi
+            </h1>
+            <p className="text-2xl font-light">
+              A web wallet that support Sol & Eth
+            </p>
+            <p className="text-xl">Pick one </p>
+          </div>
+
+          <div className="flex gap-2 pt-3 ">
+            <Button
+              size={"lg"}
+              className="cursor-pointer"
+              onClick={() => {
+                setPathType("501");
+                toast.success("wallet selected successfully");
+              }}
+            >
+              Solana
+            </Button>
+
+            <Button
+              size={"lg"}
+              className="cursor-pointer"
+              onClick={() => {
+                setPathType("60");
+                toast.success("wallet selected successfully");
+              }}
+            >
+              Eth
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {wallets.length == 0 && pathType !== "0" && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ease: easeInOut, duration: 0.3 }}
+          className="flex flex-col w-full gap-2 p-6"
+        >
+          <h1 className="text-6xl pb-10 font-bold tracking-tighter">
+            Secret Recovery Phrase
+          </h1>
+          <div className="flex gap-4 justify-center items-center">
+            <Input
+              placeholder="Enter recovery phrase or click on generate wallet"
+              value={InputMnemonic}
+              onChange={(e) => setInputMnemonic(e.target.value)}
+              type="password"
+              className="py-4 h-full"
+            ></Input>
+            <Button
+              onClick={() => {
+                handleGenerateWallet();
+              }}
+              className="cursor-pointer p-4 h-full"
+            >
+              {InputMnemonic === "" ? "Generate wallet" : "Add wallet"}
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {mnemonicWords && wallets.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ease: easeInOut, duration: 0.4 }}
+          className="flex  flex-col w-full gap-2 rounded-lg border border-primary/20 p-6  cursor-pointer"
+          onClick={() => setPhraseVisibility(!phraseVisibility)}
+        >
+          <div className="p-4  w-full flex justify-between">
+            <h1 className="text-4xl font-semibold">Your Recovery Phrase</h1>
+            <Button
+              variant="ghost"
+              className="cursor-pointer"
+              onClick={() => setPhraseVisibility(!phraseVisibility)}
+            >
+              {phraseVisibility ? (
+                <ChevronUp></ChevronUp>
+              ) : (
+                <ChevronDown></ChevronDown>
+              )}
+            </Button>
+          </div>
+          <div>{}</div>
+          {phraseVisibility && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ease: easeInOut, duration: 0.4 }}
+              className="flex flex-col w-full justify-center items-center cursor-pointer"
+              onClick={() => CopytoClipboard(mnemonicWords.join(""))}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ease: easeInOut, duration: 0.4 }}
+                className="grid grid-cols-2 gap-2 w-full justify-center items-center mx-auto my-5 md:grid-cols-3 lg:grid-cols-4"
+              >
+                {mnemonicWords.map((word, index) => (
+                  <p
+                    key={index}
+                    className="md:text-lg bg-foreground/5 flex w-full items-center justify-center p-4 rounded-lg"
+                  >
+                    {word}
+                  </p>
+                ))}
+              </motion.div>
+              <p className="flex w-full gap-2 text-xl font-extralight">
+                Click anywhere to copy <Copy></Copy>
+              </p>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
+
+      {wallets.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ease: easeInOut, duration: 0.4 }}
+          className="flex flex-col w-full p-8 px-0 gap-2"
+        >
+          {
+            <div className="flex justify-between items-center p-2">
+              <h1 className="font-semibold text-4xl p-4 ">{pathname} Wallet</h1>
+              <Button
+                onClick={() => clearWallets()}
+                className="self-end p-5 cursor-pointer mr-12 mb-2 text-white bg-red-600 dark:bg-red-500/40"
+                variant="destructive"
+              >
+                Clear wallets
+              </Button>
+            </div>
+          }
+
+          {wallets.map((wallet: Wallet, index: number) => (
+            <div
+              key={index}
+              className="p-8  mx-auto w-full border border-primary/30 rounded-lg "
+            >
+              <h1 className="font-semibold text-2xl p-2 flex justify-between">
+                Wallet {index + 1}
+                <div>Balance {balance}</div>
+                <div>
+                  {" "}
+                  <Button
+                    onClick={() => handleAddWallet()}
+                    className="bg-white/90 p-4 mr-5 cursor-pointer"
+                  >
+                    Add wallet
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDelete(index)}
+                  >
+                    <Trash2></Trash2>
+                  </Button>
+                </div>
+              </h1>
+              <div className="text-xl p-2">
+                Public key
+                <p className="text-lg font-light">{wallet.publicKey}</p>
+              </div>
+              <div className="text-xl p-2 ">
+                Private key
+                <p className="text-lg font-light gap-2 flex">
+                  {VisiblePrivateKey[index]
+                    ? wallet.privateKey
+                    : ".".repeat(wallet.mnemonic.length)}
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    className="cursor-pointer"
+                    onClick={() => toggleVisibility(index)}
+                  >
+                    {VisiblePrivateKey ? <EyeOff></EyeOff> : <Eye></Eye>}
+                  </Button>
+                </p>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      )}
     </div>
-
-      
-
-<div className="flex gap-2 pt-3 ">
-        <Button size={"lg"}
-        className= "cursor-pointer"
-        onClick={()=>{setPathType("501"); toast.success("wallet selected successfully")}
-        } >Solana</Button>
-
-          <Button size={"lg"}
-           className= "cursor-pointer"
-        onClick={()=>{setPathType("60"); toast.success("wallet selected successfully")}
-        } >Eth</Button></div> 
-
-       
-        </div>)}
-
-{wallets.length ==0 && pathType!=="0" &&(
-    
-       <motion.div 
-       initial={{opacity:0,y:-20}}
-       animate={{opacity:1,y:0}}
-       transition={{ease:easeInOut,duration:0.3}}
-       className="flex flex-col w-full gap-2 p-6">
-        <h1 className="text-6xl pb-4 font-bold tracking-tighter">Secret Recovery Phrase</h1>
-        <div className="flex gap-2">
-        
-         <Input placeholder="Enter recovery phrase or click on generate wallet"
-        value={InputMnemonic}
-        onChange={(e)=>setInputMnemonic(e.target.value)}
-        type="password"
-        className="py-4 h-full"
-       >
-        </Input>
-        <Button onClick={()=>{handleGenerateWallet()}}
-            className="cursor-pointer p-4 h-full">{InputMnemonic ==="" ?"Generate wallet" :"Add wallet"}
-        </Button></div>
-       </motion.div>
-        
-    
-)}
-
-{ mnemonicWords && wallets.length > 0 && (
-  <motion.div
-  initial={{opacity:0,y:-20}}
-  animate={{opacity:1,y:0}}
-  transition={{ease:easeInOut,duration:0.4}}
-  className="flex  flex-col w-full gap-2 rounded-lg border border-primary/20 p-6  cursor-pointer"
-  onClick={()=>setPhraseVisibility(!phraseVisibility)}
-  >
-    <div className="p-4  w-full flex justify-between">
-    
-    <h1 className="text-4xl font-semibold">Your Recovery Phrase</h1>
-    <Button variant="ghost"  className="cursor-pointer" onClick={()=>setPhraseVisibility(!phraseVisibility)}>
-        {phraseVisibility ? 
-   <ChevronUp></ChevronUp> : <ChevronDown></ChevronDown>}
-   </Button> 
-   </div>
-   <div>{}</div>
-   {phraseVisibility && (
-   <motion.div
-  initial={{opacity:0,y:-20}}
-  animate={{opacity:1,y:0}}
-  transition={{ease:easeInOut,duration:0.4}}
-  className="flex flex-col w-full justify-center items-center cursor-pointer"
-  onClick={()=>CopytoClipboard(mnemonicWords.join(""))}
-  >
-<motion.div
-  initial={{opacity:0,y:-20}}
-  animate={{opacity:1,y:0}}
-  transition={{ease:easeInOut,duration:0.4}}
-  className="grid grid-cols-2 gap-2 w-full justify-center items-center mx-auto my-5 md:grid-cols-3 lg:grid-cols-4"
-  >
-
-
-{mnemonicWords.map((word,index)=><p key={index}
-className="md:text-lg bg-foreground/5 flex w-full items-center justify-center p-4 rounded-lg">{word}</p>)}
-  </motion.div> 
-<p className="flex w-full gap-2 text-xl font-extralight">Click anywhere to copy <Copy></Copy></p>
-
-  </motion.div> )}
-  
-
-  
-  </motion.div> 
-
-    
-  
-   )
+  );
 }
-
-{wallets.length>0 &&(
-    <motion.div
-  initial={{opacity:0,y:-20}}
-  animate={{opacity:1,y:0}}
-  transition={{ease:easeInOut,duration:0.4}}
-  className="flex flex-col w-full p-8 px-0 gap-2"
-  >
-    
-    { <div className="flex justify-between items-center p-2"><h1 className="font-semibold text-4xl p-4 ">{pathname} Wallet</h1>
-    <Button onClick={()=>clearWallets()} className="self-end p-5 cursor-pointer mr-12 mb-2 text-white" variant="destructive">Clear wallets</Button>
-    </div>
-        
-       }
-    
-{wallets.map((wallet:Wallet,index:number)=>(
-
-    <div key={index}  className="p-8  mx-auto w-full border border-primary/30 rounded-lg ">
-        <h1 className="font-semibold text-2xl p-2 flex justify-between">Wallet {index+1}
-           
-            <div>Balance {balance}</div>
-           <div> <Button onClick={()=>handleAddWallet()} className="bg-white/90 p-4 mr-5 cursor-pointer">Add wallet</Button>
-            <Button variant="destructive"
-            onClick={()=>handleDelete(index)}><Trash2></Trash2></Button></div>
-        </h1>
-        <div className="text-xl p-2">Public key
-             <p className="text-lg font-light">{wallet.publicKey}</p>
-        </div>
-        <div className="text-xl p-2 ">Private key
-            <p className="text-lg font-light gap-2 flex">{VisiblePrivateKey[index] ? wallet.privateKey : ".".repeat(wallet.mnemonic.length)}
-            <Button variant="ghost" size="lg" className="cursor-pointer"
-            onClick={()=>toggleVisibility(index)}>{VisiblePrivateKey? <EyeOff></EyeOff>:<Eye></Eye>}</Button></p>
-        </div>
-       
-    </div>
-))}
-  </motion.div> 
-  
-)}
-
-</div>
-
-
-
-
-
-
-)}
